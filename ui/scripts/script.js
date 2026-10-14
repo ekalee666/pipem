@@ -1,234 +1,199 @@
 /* =========================================
    FIRE SPEEDOMETER — script.js
-   Compatible with JG-Works Garage custom speedometer system
+   JG-Works Garage compatible
    ========================================= */
-'use strict';
 
+let elements = {};
+let speedMode = 1; // default MPH (server default)
+let indicators = 0;
 const ARC_LEN = 173;
 
-// DOM
-let speedEl, rpmPathEl, rpmValEl, gearValEl;
-let fuelFill, fuelPctEl, engFill, engPctEl;
-let engineDot, engineLbl, unitBadge;
-let speedo;
+const onOrOff = state => state ? 'On' : 'Off';
 
-// State
-let speedMode = 0; // 0=KMH, 1=MPH, 2=Knots
-let curSpd    = 0;
-let tgtSpd    = 0;
-let rafId     = null;
-
-// ─── Arc ─────────────────────────────────────────────────────────────────────
+// ─── Arc RPM ─────────────────────────────────────────────────────────────────
 function updateArc(rpmRatio) {
-    if (!rpmPathEl) return;
-    const sweep  = ARC_LEN * 0.75;
-    const offset = ARC_LEN - (Math.min(1, rpmRatio) * sweep);
-    rpmPathEl.style.strokeDashoffset = offset.toFixed(2);
+    const el = document.getElementById('rpm-path');
+    if (!el) return;
+    const offset = ARC_LEN - (Math.min(1, rpmRatio) * ARC_LEN * 0.75);
+    el.style.strokeDashoffset = offset.toFixed(2);
 }
 
-// ─── Speed color ─────────────────────────────────────────────────────────────
-function applySpeedColor(spd) {
-    if (!speedEl) return;
-    const max = speedMode === 0 ? 280 : speedMode === 1 ? 175 : 150;
-    speedEl.classList.remove('s-slow','s-med','s-fast','s-max');
-    if      (spd < max * 0.25) speedEl.classList.add('s-slow');
-    else if (spd < max * 0.55) speedEl.classList.add('s-med');
-    else if (spd < max * 0.80) speedEl.classList.add('s-fast');
-    else                        speedEl.classList.add('s-max');
-}
-
-// ─── Bar helper ───────────────────────────────────────────────────────────────
-function updateBar(fillEl, pctEl, pct) {
-    if (!fillEl || !pctEl) return;
-    const v = Math.max(0, Math.min(100, pct));
-    fillEl.style.width = v + '%';
-    pctEl.textContent  = v.toFixed(0) + '%';
-    if (v <= 15) {
-        fillEl.style.background = 'linear-gradient(90deg,#770000,#aa0000)';
-        fillEl.style.boxShadow  = '0 0 7px rgba(160,0,0,0.9)';
-    } else if (v <= 35) {
-        fillEl.style.background = 'linear-gradient(90deg,#cc2200,#ee4400)';
-        fillEl.style.boxShadow  = '0 0 6px rgba(210,40,0,0.7)';
+// ─── Bar sync ─────────────────────────────────────────────────────────────────
+function updateFuelBar(pct) {
+    const fill = document.getElementById('fuel-fill');
+    if (!fill) return;
+    fill.style.width = Math.max(0, Math.min(100, pct)) + '%';
+    if (pct <= 15) {
+        fill.style.background = 'linear-gradient(90deg,#770000,#aa0000)';
+        fill.style.boxShadow  = '0 0 7px rgba(160,0,0,0.9)';
+    } else if (pct <= 35) {
+        fill.style.background = 'linear-gradient(90deg,#cc2200,#ee4400)';
+        fill.style.boxShadow  = '0 0 6px rgba(210,40,0,0.7)';
     } else {
-        fillEl.style.background = 'linear-gradient(90deg,#ff2200,#ff6600,#ffdd00)';
-        fillEl.style.boxShadow  = '0 0 6px rgba(255,100,0,0.65)';
+        fill.style.background = 'linear-gradient(90deg,#ff2200,#ff6600,#ffdd00)';
+        fill.style.boxShadow  = '0 0 6px rgba(255,100,0,0.65)';
     }
 }
 
-// ─── RAF smooth speed ─────────────────────────────────────────────────────────
-function rafTick() {
-    const diff = tgtSpd - curSpd;
-    curSpd += Math.abs(diff) > 0.4 ? diff * 0.17 : diff;
-    const disp = Math.round(curSpd);
-    if (speedEl) speedEl.textContent = disp;
-    applySpeedColor(disp);
-    rafId = requestAnimationFrame(rafTick);
-}
-
-function startRAF() {
-    if (!rafId) rafId = requestAnimationFrame(rafTick);
-}
-
-// ─── Show / Hide speedo ───────────────────────────────────────────────────────
-function showSpeedo() {
-    if (speedo) speedo.classList.remove('hidden');
-    startRAF();
-}
-
-function hideSpeedo() {
-    if (speedo) speedo.classList.add('hidden');
-    tgtSpd = 0;
-}
-
-// =========================================
-// GLOBAL FUNCTIONS — called by JG-Works server
-// =========================================
-
-/**
- * Engine state: true = on, false = off
- */
-window.setEngine = function(state) {
-    showSpeedo();
-    if (!engineDot || !engineLbl) return;
-    engineDot.className   = 'pill-dot ' + (state ? 'on' : 'off');
-    engineLbl.textContent = 'ENGINE ' + (state ? 'ON' : 'OFF');
-};
-
-/**
- * Speed in m/s — server sends raw m/s, we convert based on mode
- */
-window.setSpeed = function(speed) {
-    showSpeedo();
-    switch (speedMode) {
-        case 1:  tgtSpd = speed * 2.236936; break; // MPH
-        case 2:  tgtSpd = speed * 1.943844; break; // Knots
-        default: tgtSpd = speed * 3.6;             // KMH
+function updateHealthBar(pct) {
+    const fill = document.getElementById('health-fill');
+    if (!fill) return;
+    fill.style.width = Math.max(0, Math.min(100, pct)) + '%';
+    if (pct <= 25) {
+        fill.style.background = 'linear-gradient(90deg,#770000,#aa0000)';
+        fill.style.boxShadow  = '0 0 7px rgba(160,0,0,0.9)';
+    } else if (pct <= 50) {
+        fill.style.background = 'linear-gradient(90deg,#cc2200,#ee4400)';
+        fill.style.boxShadow  = '0 0 6px rgba(210,40,0,0.7)';
+    } else {
+        fill.style.background = 'linear-gradient(90deg,#ff2200,#ff6600,#ffdd00)';
+        fill.style.boxShadow  = '0 0 6px rgba(255,100,0,0.65)';
     }
-};
+}
 
-/**
- * RPM: 0.0 to 1.0
- */
-window.setRPM = function(rpm) {
+// ─── Engine dot sync ──────────────────────────────────────────────────────────
+function syncEngineDot(text) {
+    const dot = document.getElementById('engine-dot');
+    if (!dot) return;
+    dot.className = 'pill-dot ' + (text === 'On' ? 'on' : 'off');
+}
+
+// ─── Speed color ──────────────────────────────────────────────────────────────
+function syncSpeedColor() {
+    const el = elements.speed;
+    if (!el) return;
+    const num = parseInt(el.innerText) || 0;
+    const max = speedMode === 0 ? 280 : speedMode === 2 ? 150 : 175;
+    el.classList.remove('s-slow','s-med','s-fast','s-max');
+    if      (num < max * 0.25) el.classList.add('s-slow');
+    else if (num < max * 0.55) el.classList.add('s-med');
+    else if (num < max * 0.80) el.classList.add('s-fast');
+    else                        el.classList.add('s-max');
+}
+
+// ─── Gear color ───────────────────────────────────────────────────────────────
+function syncGearColor(gear) {
+    const el = elements.gear;
+    if (!el) return;
+    if (gear === 0 || gear === 'N') {
+        el.style.color      = '#66aaff';
+        el.style.textShadow = '0 0 10px #4488ff,0 0 20px #2255cc';
+    } else if (Number(gear) >= 5) {
+        el.style.color      = '#ff4400';
+        el.style.textShadow = '0 0 10px #ff2200,0 0 20px #cc0000';
+    } else {
+        el.style.color      = '#ffdd00';
+        el.style.textShadow = '0 0 10px #ff6600,0 0 22px #ff2200';
+    }
+}
+
+// =========================================
+// GLOBAL FUNCTIONS — dipanggil server JG-Works
+// =========================================
+
+function setEngine(state) {
+    elements.engine.innerText = onOrOff(state);
+    syncEngineDot(onOrOff(state));
+}
+
+function setSpeed(speed) {
+    switch(speedMode) {
+        case 1:  elements.speed.innerText = `${Math.round(speed * 2.236936)} MPH`;   break;
+        case 2:  elements.speed.innerText = `${Math.round(speed * 1.943844)} Knots`; break;
+        default: elements.speed.innerText = `${Math.round(speed * 3.6)} KMH`;
+    }
+    syncSpeedColor();
+}
+
+function setRPM(rpm) {
+    elements.rpm.innerText = `${rpm.toFixed(4)} RPM`;
     updateArc(rpm);
-    if (rpmValEl) rpmValEl.textContent = Math.round(rpm * 9000).toLocaleString();
-};
+}
 
-/**
- * Fuel: 0.0 to 1.0
- */
-window.setFuel = function(fuel) {
-    updateBar(fuelFill, fuelPctEl, fuel * 100);
-};
-
-/**
- * Health: 0.0 to 1.0
- */
-window.setHealth = function(health) {
-    updateBar(engFill, engPctEl, health * 100);
-};
-
-/**
- * Gear: number, 0 = neutral
- */
-window.setGear = function(gear) {
-    if (!gearValEl) return;
-    gearValEl.textContent = gear === 0 ? 'N' : String(gear);
-    if (gear === 0) {
-        gearValEl.style.color      = '#66aaff';
-        gearValEl.style.textShadow = '0 0 10px #4488ff,0 0 20px #2255cc';
-    } else if (gear >= 5) {
-        gearValEl.style.color      = '#ff4400';
-        gearValEl.style.textShadow = '0 0 10px #ff2200,0 0 20px #cc0000';
-    } else {
-        gearValEl.style.color      = '#ffdd00';
-        gearValEl.style.textShadow = '0 0 10px #ff6600,0 0 22px #ff2200';
+function setFuel(fuel) {
+    const pct = (fuel * 100).toFixed(1);
+    elements.fuel.innerText = `${pct}%`;
+    updateFuelBar(parseFloat(pct));
+    if (typeof window.onTelemetryUpdate === 'function') {
+        window.onTelemetryUpdate('Fuel', `${pct}%`);
     }
-};
+}
 
-/**
- * Headlights: 0=off, 1=on, 2=high beam
- */
-window.setHeadlights = function(state) {
-    // optional — bisa ditampilkan di badge jika diperlukan
-};
+function setHealth(health) {
+    const pct = (health * 100).toFixed(1);
+    elements.health.innerText = `${pct}%`;
+    updateHealthBar(parseFloat(pct));
+    if (typeof window.onTelemetryUpdate === 'function') {
+        window.onTelemetryUpdate('Health', `${pct}%`);
+    }
+}
 
-/**
- * Left indicator
- */
-window.setLeftIndicator = function(state) {
-    // optional
-};
+function setGear(gear) {
+    elements.gear.innerText = String(gear);
+    syncGearColor(gear);
+}
 
-/**
- * Right indicator
- */
-window.setRightIndicator = function(state) {
-    // optional
-};
+function setHeadlights(state) {
+    switch(state) {
+        case 1:  elements.headlights.innerText = 'On';        break;
+        case 2:  elements.headlights.innerText = 'High Beam'; break;
+        default: elements.headlights.innerText = 'Off';
+    }
+}
 
-/**
- * Seatbelt
- */
-window.setSeatbelts = function(state) {
-    // optional
-};
+function setLeftIndicator(state) {
+    indicators = (indicators & 0b10) | (state ? 0b01 : 0b00);
+    elements.indicators.innerText = `${indicators & 0b01 ? 'On' : 'Off'} / ${indicators & 0b10 ? 'On' : 'Off'}`;
+}
 
-/**
- * Speed mode: 0=KMH, 1=MPH, 2=Knots
- */
-window.setSpeedMode = function(mode) {
+function setRightIndicator(state) {
+    indicators = (indicators & 0b01) | (state ? 0b10 : 0b00);
+    elements.indicators.innerText = `${indicators & 0b01 ? 'On' : 'Off'} / ${indicators & 0b10 ? 'On' : 'Off'}`;
+}
+
+function setSeatbelts(state) {
+    elements.seatbelts.innerText = onOrOff(state);
+}
+
+function setSpeedMode(mode) {
     speedMode = mode;
-    if (unitBadge) {
-        const labels = ['KM/H', 'MPH', 'KTS'];
-        unitBadge.textContent = labels[mode] || 'KM/H';
-    }
-};
+    const badge = document.getElementById('unit-badge');
+    if (badge) badge.textContent = ['KM/H','MPH','KTS'][mode] || 'MPH';
+}
 
-/**
- * Odometer: distance in miles
- */
-window.setOdometer = function(distance) {
-    // optional — bisa tambahkan elemen ODO jika perlu
-};
-
-// ─── Also support NUI message (fallback / dev mode) ───────────────────────────
-window.addEventListener('message', function(e) {
-    const d = e.data;
-    if (!d || !d.action) return;
-    if (d.action === 'hide') hideSpeedo();
-});
+function setOdometer(distance) {
+    elements.odometer.innerText = distance.toFixed(1) + ' Miles';
+}
 
 // ─── DOM Ready ────────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', function() {
-    speedo     = document.getElementById('speedo');
-    speedEl    = document.getElementById('speed-val');
-    rpmPathEl  = document.getElementById('rpm-path');
-    rpmValEl   = document.getElementById('rpm-val');
-    gearValEl  = document.getElementById('gear-val');
-    fuelFill   = document.getElementById('fuel-fill');
-    fuelPctEl  = document.getElementById('fuel-pct');
-    engFill    = document.getElementById('eng-fill');
-    engPctEl   = document.getElementById('eng-pct');
-    engineDot  = document.getElementById('engine-dot');
-    engineLbl  = document.getElementById('engine-lbl');
-    unitBadge  = document.getElementById('unit-badge');
+document.addEventListener('DOMContentLoaded', () => {
+    elements = {
+        engine:     document.getElementById('engine'),
+        speed:      document.getElementById('speed'),
+        rpm:        document.getElementById('rpm'),
+        fuel:       document.getElementById('fuel'),
+        health:     document.getElementById('health'),
+        gear:       document.getElementById('gear'),
+        headlights: document.getElementById('headlights'),
+        indicators: document.getElementById('indicators'),
+        seatbelts:  document.getElementById('seatbelts'),
+        odometer:   document.getElementById('odometer'),
+    };
 
-    // Dev preview — aktif hanya di browser biasa
+    // Dev preview — aktif hanya di browser biasa, mati di FiveM
     if (typeof window.invokeNative === 'undefined') {
-        showSpeedo();
         let ps = 0, dir = 1;
-        setInterval(function() {
+        setInterval(() => {
             ps += dir * 5;
-            if (ps >= 260) dir = -1;
+            if (ps >= 240) dir = -1;
             if (ps <= 0)   dir =  1;
-            window.setEngine(true);
-            window.setSpeed(ps / 3.6);
-            window.setRPM(Math.min(1, ps / 260));
-            window.setGear(Math.min(6, Math.max(1, Math.floor(ps / 43))));
-            window.setFuel(0.65);
-            window.setHealth(0.88);
-            window.setSpeedMode(0);
+            setEngine(true);
+            setSpeed(ps / 3.6);
+            setRPM(Math.min(1, ps / 240));
+            setGear(Math.min(6, Math.max(1, Math.floor(ps / 40))));
+            setFuel(0.65);
+            setHealth(0.88);
+            setOdometer(372.1);
         }, 50);
     }
 });
