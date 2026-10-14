@@ -1,44 +1,35 @@
 /* =========================================
    FIRE SPEEDOMETER — script.js
+   Compatible with JG-Works Garage custom speedometer system
    ========================================= */
 'use strict';
 
-const ARC_LEN = 173; // half-ellipse path length for viewBox 120x70, r≈55
+const ARC_LEN = 173;
 
 // DOM
-const speedo     = document.getElementById('speedo');
-const speedEl    = document.getElementById('speed-val');
-const rpmPathEl  = document.getElementById('rpm-path');
-const rpmValEl   = document.getElementById('rpm-val');
-const rpmWrap    = document.getElementById('rpm-wrap');
-const gearValEl  = document.getElementById('gear-val');
-const gearWrap   = document.getElementById('gear-wrap');
-const fuelFill   = document.getElementById('fuel-fill');
-const fuelPct    = document.getElementById('fuel-pct');
-const engFill    = document.getElementById('eng-fill');
-const engPct     = document.getElementById('eng-pct');
-const engineDot  = document.getElementById('engine-dot');
-const engineLbl  = document.getElementById('engine-lbl');
-const unitBadge  = document.getElementById('unit-badge');
+let speedEl, rpmPathEl, rpmValEl, gearValEl;
+let fuelFill, fuelPctEl, engFill, engPctEl;
+let engineDot, engineLbl, unitBadge;
+let speedo;
 
 // State
-let visible   = false;
-let useMetric = true;
-let showRpm   = true;
-let showGear  = true;
-
+let speedMode = 0; // 0=KMH, 1=MPH, 2=Knots
 let curSpd    = 0;
 let tgtSpd    = 0;
 let rafId     = null;
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
-function mpsToDisplay(mps) {
-    return useMetric ? mps * 3.6 : mps * 2.237;
+// ─── Arc ─────────────────────────────────────────────────────────────────────
+function updateArc(rpmRatio) {
+    if (!rpmPathEl) return;
+    const sweep  = ARC_LEN * 0.75;
+    const offset = ARC_LEN - (Math.min(1, rpmRatio) * sweep);
+    rpmPathEl.style.strokeDashoffset = offset.toFixed(2);
 }
 
-function setSpeedColor(spd) {
-    const max = useMetric ? 280 : 175;
+// ─── Speed color ─────────────────────────────────────────────────────────────
+function applySpeedColor(spd) {
+    if (!speedEl) return;
+    const max = speedMode === 0 ? 280 : speedMode === 1 ? 175 : 150;
     speedEl.classList.remove('s-slow','s-med','s-fast','s-max');
     if      (spd < max * 0.25) speedEl.classList.add('s-slow');
     else if (spd < max * 0.55) speedEl.classList.add('s-med');
@@ -46,19 +37,12 @@ function setSpeedColor(spd) {
     else                        speedEl.classList.add('s-max');
 }
 
-function updateArc(rpmRatio) {
-    // 270° sweep = 75% of arc
-    const sweep  = ARC_LEN * 0.75;
-    const offset = ARC_LEN - (Math.min(1, rpmRatio) * sweep);
-    rpmPathEl.style.strokeDashoffset = offset.toFixed(2);
-}
-
-function updateBar(fillEl, pctEl, value, type) {
-    const v = Math.max(0, Math.min(100, value));
-    fillEl.style.width  = v + '%';
-    pctEl.textContent   = v + '%';
-
-    // colour shift when low
+// ─── Bar helper ───────────────────────────────────────────────────────────────
+function updateBar(fillEl, pctEl, pct) {
+    if (!fillEl || !pctEl) return;
+    const v = Math.max(0, Math.min(100, pct));
+    fillEl.style.width = v + '%';
+    pctEl.textContent  = v.toFixed(0) + '%';
     if (v <= 15) {
         fillEl.style.background = 'linear-gradient(90deg,#770000,#aa0000)';
         fillEl.style.boxShadow  = '0 0 7px rgba(160,0,0,0.9)';
@@ -71,122 +55,180 @@ function updateBar(fillEl, pctEl, value, type) {
     }
 }
 
-// ─── Smooth speed ────────────────────────────────────────────────────────────
-
+// ─── RAF smooth speed ─────────────────────────────────────────────────────────
 function rafTick() {
     const diff = tgtSpd - curSpd;
     curSpd += Math.abs(diff) > 0.4 ? diff * 0.17 : diff;
     const disp = Math.round(curSpd);
-    speedEl.textContent = disp;
-    setSpeedColor(disp);
+    if (speedEl) speedEl.textContent = disp;
+    applySpeedColor(disp);
     rafId = requestAnimationFrame(rafTick);
 }
 
-// ─── Show / Hide ─────────────────────────────────────────────────────────────
-
-function show() {
-    visible = true;
-    speedo.classList.remove('hidden');
+function startRAF() {
     if (!rafId) rafId = requestAnimationFrame(rafTick);
 }
 
-function hide() {
-    visible = false;
-    speedo.classList.add('hidden');
-    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+// ─── Show / Hide speedo ───────────────────────────────────────────────────────
+function showSpeedo() {
+    if (speedo) speedo.classList.remove('hidden');
+    startRAF();
+}
+
+function hideSpeedo() {
+    if (speedo) speedo.classList.add('hidden');
     tgtSpd = 0;
 }
 
-// ─── Update from Lua ─────────────────────────────────────────────────────────
+// =========================================
+// GLOBAL FUNCTIONS — called by JG-Works server
+// =========================================
 
-function onShow(d) {
-    show();
+/**
+ * Engine state: true = on, false = off
+ */
+window.setEngine = function(state) {
+    showSpeedo();
+    if (!engineDot || !engineLbl) return;
+    engineDot.className   = 'pill-dot ' + (state ? 'on' : 'off');
+    engineLbl.textContent = 'ENGINE ' + (state ? 'ON' : 'OFF');
+};
 
-    useMetric = !!d.isMetric;
-    unitBadge.textContent = useMetric ? 'KM/H' : 'MPH';
+/**
+ * Speed in m/s — server sends raw m/s, we convert based on mode
+ */
+window.setSpeed = function(speed) {
+    showSpeedo();
+    switch (speedMode) {
+        case 1:  tgtSpd = speed * 2.236936; break; // MPH
+        case 2:  tgtSpd = speed * 1.943844; break; // Knots
+        default: tgtSpd = speed * 3.6;             // KMH
+    }
+};
 
-    // Speed (m/s → display unit)
-    tgtSpd = mpsToDisplay(d.speed || 0);
+/**
+ * RPM: 0.0 to 1.0
+ */
+window.setRPM = function(rpm) {
+    updateArc(rpm);
+    if (rpmValEl) rpmValEl.textContent = Math.round(rpm * 9000).toLocaleString();
+};
 
-    // RPM (0.0–1.0)
-    if (d.rpm !== null && d.rpm !== undefined) {
-        const rpmRaw = Math.round(d.rpm * 9000);
-        rpmValEl.textContent = rpmRaw.toLocaleString();
-        updateArc(d.rpm);
-        rpmWrap.style.display = '';
+/**
+ * Fuel: 0.0 to 1.0
+ */
+window.setFuel = function(fuel) {
+    updateBar(fuelFill, fuelPctEl, fuel * 100);
+};
+
+/**
+ * Health: 0.0 to 1.0
+ */
+window.setHealth = function(health) {
+    updateBar(engFill, engPctEl, health * 100);
+};
+
+/**
+ * Gear: number, 0 = neutral
+ */
+window.setGear = function(gear) {
+    if (!gearValEl) return;
+    gearValEl.textContent = gear === 0 ? 'N' : String(gear);
+    if (gear === 0) {
+        gearValEl.style.color      = '#66aaff';
+        gearValEl.style.textShadow = '0 0 10px #4488ff,0 0 20px #2255cc';
+    } else if (gear >= 5) {
+        gearValEl.style.color      = '#ff4400';
+        gearValEl.style.textShadow = '0 0 10px #ff2200,0 0 20px #cc0000';
     } else {
-        rpmWrap.style.display = 'none';
-        updateArc(0);
+        gearValEl.style.color      = '#ffdd00';
+        gearValEl.style.textShadow = '0 0 10px #ff6600,0 0 22px #ff2200';
     }
+};
 
-    // Gear
-    if (d.gear !== null && d.gear !== undefined) {
-        const g = d.gear;
-        gearValEl.textContent = g === 0 ? 'N' : String(g);
-        if (g === 0) {
-            gearValEl.style.color      = '#66aaff';
-            gearValEl.style.textShadow = '0 0 10px #4488ff,0 0 20px #2255cc';
-        } else if (g >= 5) {
-            gearValEl.style.color      = '#ff4400';
-            gearValEl.style.textShadow = '0 0 10px #ff2200,0 0 20px #cc0000';
-        } else {
-            gearValEl.style.color      = '#ffdd00';
-            gearValEl.style.textShadow = '0 0 10px #ff6600,0 0 22px #ff2200';
-        }
-        gearWrap.style.display = '';
-    } else {
-        gearWrap.style.display = 'none';
+/**
+ * Headlights: 0=off, 1=on, 2=high beam
+ */
+window.setHeadlights = function(state) {
+    // optional — bisa ditampilkan di badge jika diperlukan
+};
+
+/**
+ * Left indicator
+ */
+window.setLeftIndicator = function(state) {
+    // optional
+};
+
+/**
+ * Right indicator
+ */
+window.setRightIndicator = function(state) {
+    // optional
+};
+
+/**
+ * Seatbelt
+ */
+window.setSeatbelts = function(state) {
+    // optional
+};
+
+/**
+ * Speed mode: 0=KMH, 1=MPH, 2=Knots
+ */
+window.setSpeedMode = function(mode) {
+    speedMode = mode;
+    if (unitBadge) {
+        const labels = ['KM/H', 'MPH', 'KTS'];
+        unitBadge.textContent = labels[mode] || 'KM/H';
     }
+};
 
-    // Fuel
-    updateBar(fuelFill, fuelPct, d.fuel || 0, 'fuel');
+/**
+ * Odometer: distance in miles
+ */
+window.setOdometer = function(distance) {
+    // optional — bisa tambahkan elemen ODO jika perlu
+};
 
-    // Engine health (0–100 range after /10 in lua)
-    updateBar(engFill,  engPct,  d.engineHealth || 0, 'engine');
-
-    // Engine status pill
-    const on = !!d.engineOn;
-    engineDot.className   = 'pill-dot ' + (on ? 'on' : 'off');
-    engineLbl.textContent = 'ENGINE ' + (on ? 'ON' : 'OFF');
-}
-
-function onUpdate(d) {
-    if (d.showRpm  !== undefined) rpmWrap.style.display  = d.showRpm  ? '' : 'none';
-    if (d.showGear !== undefined) gearWrap.style.display = d.showGear ? '' : 'none';
-    if (d.useMetric !== undefined) {
-        useMetric = d.useMetric;
-        unitBadge.textContent = useMetric ? 'KM/H' : 'MPH';
-    }
-}
-
-// ─── NUI listener ────────────────────────────────────────────────────────────
-
+// ─── Also support NUI message (fallback / dev mode) ───────────────────────────
 window.addEventListener('message', function(e) {
     const d = e.data;
     if (!d || !d.action) return;
-    switch (d.action) {
-        case 'show':   onShow(d);   break;
-        case 'hide':   hide();      break;
-        case 'update': onUpdate(d); break;
-    }
+    if (d.action === 'hide') hideSpeedo();
 });
 
-// ─── Dev preview (browser only) ──────────────────────────────────────────────
+// ─── DOM Ready ────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+    speedo     = document.getElementById('speedo');
+    speedEl    = document.getElementById('speed-val');
+    rpmPathEl  = document.getElementById('rpm-path');
+    rpmValEl   = document.getElementById('rpm-val');
+    gearValEl  = document.getElementById('gear-val');
+    fuelFill   = document.getElementById('fuel-fill');
+    fuelPctEl  = document.getElementById('fuel-pct');
+    engFill    = document.getElementById('eng-fill');
+    engPctEl   = document.getElementById('eng-pct');
+    engineDot  = document.getElementById('engine-dot');
+    engineLbl  = document.getElementById('engine-lbl');
+    unitBadge  = document.getElementById('unit-badge');
 
-if (typeof window.invokeNative === 'undefined') {
-    show();
-    let ps = 0, dir = 1;
-    setInterval(function() {
-        ps += dir * 5;
-        if (ps >= 260) dir = -1;
-        if (ps <= 0)   dir =  1;
-        onShow({
-            isMetric:     true,
-            speed:        ps / 3.6,       // m/s
-            rpm:          Math.min(1, ps / 250),
-            gear:         Math.min(6, Math.max(1, Math.floor(ps / 43))),
-            fuel:         65,
-            engineHealth: 88,
-        });
-    }, 50);
-}
+    // Dev preview — aktif hanya di browser biasa
+    if (typeof window.invokeNative === 'undefined') {
+        showSpeedo();
+        let ps = 0, dir = 1;
+        setInterval(function() {
+            ps += dir * 5;
+            if (ps >= 260) dir = -1;
+            if (ps <= 0)   dir =  1;
+            window.setEngine(true);
+            window.setSpeed(ps / 3.6);
+            window.setRPM(Math.min(1, ps / 260));
+            window.setGear(Math.min(6, Math.max(1, Math.floor(ps / 43))));
+            window.setFuel(0.65);
+            window.setHealth(0.88);
+            window.setSpeedMode(0);
+        }, 50);
+    }
+});
