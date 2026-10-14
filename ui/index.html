@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Fire Speedometer</title>
+    <link rel="stylesheet" href="styles/style.css"/>
+</head>
+<body>
+
+<div id="speedo" class="speedo hidden">
+
+    <!-- Flame particle layer -->
+    <div class="flame-layer" aria-hidden="true">
+        <span class="flare fl1"></span>
+        <span class="flare fl2"></span>
+        <span class="flare fl3"></span>
+        <span class="flare fl4"></span>
+        <span class="flare fl5"></span>
+    </div>
+
+    <!-- Header: engine status -->
+    <div class="speedo-header">
+        <div class="status-pill" id="engine-pill">
+            <span class="pill-dot" id="engine-dot"></span>
+            <span class="pill-text" id="engine-lbl">ENGINE OFF</span>
+        </div>
+        <div class="unit-badge" id="unit-badge">KM/H</div>
+    </div>
+
+    <!-- Main body -->
+    <div class="speedo-body">
+
+        <!-- RPM arc (SVG) -->
+        <div class="arc-wrap">
+            <svg class="arc-svg" viewBox="0 0 120 70" xmlns="http://www.w3.org/2000/svg">
+                <!-- track -->
+                <path d="M10,65 A55,55 0 0,1 110,65"
+                      fill="none" stroke="rgba(255,40,0,0.12)" stroke-width="7" stroke-linecap="round"/>
+                <!-- active -->
+                <path id="rpm-path" d="M10,65 A55,55 0 0,1 110,65"
+                      fill="none" stroke="url(#fg)" stroke-width="7" stroke-linecap="round"
+                      stroke-dasharray="173" stroke-dashoffset="173"/>
+                <defs>
+                    <linearGradient id="fg" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%"   stop-color="#ff1a00"/>
+                        <stop offset="55%"  stop-color="#ff6600"/>
+                        <stop offset="100%" stop-color="#ffdd00"/>
+                    </linearGradient>
+                </defs>
+            </svg>
+
+            <!-- Speed number centred inside arc -->
+            <div class="speed-center">
+                <span id="speed-val" class="speed-val">0</span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- RPM + Gear row -->
+    <div class="mid-row">
+        <div class="rpm-readout" id="rpm-wrap">
+            <span class="mid-label">RPM</span>
+            <span id="rpm-val" class="mid-val">0</span>
+        </div>
+        <div class="gear-box" id="gear-wrap">
+            <span class="mid-label">GEAR</span>
+            <span id="gear-val" class="gear-val">1</span>
+        </div>
+    </div>
+
+    <!-- Fuel & Engine health bars -->
+    <div class="bars-row">
+        <div class="bar-item">
+            <div class="bar-top">
+                <span class="bar-icon">⛽</span>
+                <span class="bar-label">FUEL</span>
+                <span id="fuel-pct" class="bar-pct">100%</span>
+            </div>
+            <div class="bar-track">
+                <div id="fuel-fill" class="bar-fill fire-bar"></div>
+            </div>
+        </div>
+        <div class="bar-item">
+            <div class="bar-top">
+                <span class="bar-icon">🔧</span>
+                <span class="bar-label">ENGINE</span>
+                <span id="eng-pct" class="bar-pct">100%</span>
+            </div>
+            <div class="bar-track">
+                <div id="eng-fill" class="bar-fill fire-bar"></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script src="scripts/script.js"></script>
+</body>
+</html>
