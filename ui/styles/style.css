@@ -1,307 +1,292 @@
-/* =========================================
+/* =============================================
    FIRE SPEEDOMETER — style.css
-   ========================================= */
+   ============================================= */
 
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
 
-*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; user-select:none; }
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
 
 body {
     background: transparent;
     overflow: hidden;
     width: 100vw;
     height: 100vh;
-    font-family: 'Rajdhani', 'Arial Narrow', Arial, sans-serif;
+    font-family: 'Orbitron', 'Courier New', monospace;
 }
 
-:root {
-    --r:  #ff2200;
-    --o:  #ff6600;
-    --y:  #ffdd00;
-    --glow-r: rgba(255,34,0,0.7);
-    --glow-o: rgba(255,102,0,0.6);
-    --bg0: rgba(10,3,0,0.95);
-    --bg1: rgba(20,6,0,0.97);
-    --bg2: rgba(35,10,0,0.99);
-    --border: rgba(255,70,0,0.4);
-}
+.hidden-data { display: none; }
 
-/* =========================================
-   MAIN CONTAINER
-   ========================================= */
-.speedo {
+/* =============================================
+   CONTAINER — pojok kanan bawah
+   ============================================= */
+.speedometer-container {
     position: fixed;
-    bottom: 26px;
-    right: 26px;
-    width: 270px;
+    bottom: 24px;
+    right: 24px;
+    width: 280px;
+}
 
-    /* Fire-flame silhouette: widens toward the bottom */
-    clip-path: polygon(
-        15%   0%,
-        85%   0%,
-        100%  6%,
-        100%  94%,
-        85%  100%,
-        15%  100%,
-        0%   94%,
-        0%    6%
+/* =============================================
+   MAIN HUD
+   ============================================= */
+.speedometer-hud {
+    background: linear-gradient(175deg,
+        rgba(8,2,0,0.94)   0%,
+        rgba(18,5,0,0.97) 35%,
+        rgba(32,9,0,0.98) 65%,
+        rgba(50,14,0,1.0) 100%
     );
-
-    background:
-        linear-gradient(180deg,
-            rgba(8,2,0,0.93)   0%,
-            rgba(18,5,0,0.96) 30%,
-            rgba(30,9,0,0.98) 60%,
-            rgba(50,14,0,1.0) 100%
-        );
-
-    border: 1px solid var(--border);
-
+    border: 1px solid rgba(255,70,0,0.4);
+    border-radius: 12px;
     box-shadow:
-        0 0 0 1px rgba(255,40,0,0.18),
-        0 0 22px rgba(255,60,0,0.45),
+        0 0 0 1px rgba(255,40,0,0.15),
+        0 0 20px rgba(255,60,0,0.45),
         0 0 55px rgba(255,30,0,0.18),
-        inset 0 0 18px rgba(255,40,0,0.04);
-
-    padding: 12px 14px 12px 14px;
+        inset 0 0 20px rgba(255,40,0,0.04);
+    padding: 10px 12px 10px 12px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-
-    transition: opacity 0.3s ease, transform 0.3s ease;
-    animation: breathe 3.5s ease-in-out infinite;
-}
-
-.speedo.hidden {
-    opacity: 0;
-    transform: translateY(12px) scale(0.97);
-    pointer-events: none;
-}
-
-@keyframes breathe {
-    0%,100% { box-shadow: 0 0 0 1px rgba(255,40,0,0.18), 0 0 22px rgba(255,60,0,0.45), 0 0 55px rgba(255,30,0,0.18), inset 0 0 18px rgba(255,40,0,0.04); }
-    50%     { box-shadow: 0 0 0 1px rgba(255,60,0,0.28), 0 0 32px rgba(255,80,0,0.65), 0 0 75px rgba(255,40,0,0.28), inset 0 0 26px rgba(255,60,0,0.07); }
-}
-
-/* =========================================
-   FLAME PARTICLES
-   ========================================= */
-.flame-layer {
-    position: absolute;
-    inset: 0;
+    gap: 7px;
+    animation: hudBreath 3.5s ease-in-out infinite;
+    position: relative;
     overflow: hidden;
+}
+
+@keyframes hudBreath {
+    0%,100% { box-shadow: 0 0 0 1px rgba(255,40,0,0.15), 0 0 20px rgba(255,60,0,0.45), 0 0 55px rgba(255,30,0,0.18), inset 0 0 20px rgba(255,40,0,0.04); }
+    50%     { box-shadow: 0 0 0 1px rgba(255,60,0,0.25), 0 0 30px rgba(255,80,0,0.65), 0 0 75px rgba(255,40,0,0.28), inset 0 0 28px rgba(255,60,0,0.07); }
+}
+
+/* Flame particles */
+.speedometer-hud::before {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 30px;
+    background: linear-gradient(to top, rgba(255,40,0,0.12), transparent);
     pointer-events: none;
     z-index: 0;
 }
 
-.flare {
-    position: absolute;
-    bottom: -4px;
-    border-radius: 50% 50% 30% 30%;
-    background: linear-gradient(to top, rgba(255,30,0,0.65), rgba(255,100,0,0.35), transparent);
-    filter: blur(3px);
-    animation: fRise var(--dur, 2s) ease-in var(--delay, 0s) infinite;
-    opacity: 0;
-}
-.fl1 { left:10%; width:8px;  height:24px; --dur:1.9s; --delay:0.0s; }
-.fl2 { left:28%; width:6px;  height:17px; --dur:2.2s; --delay:0.5s; }
-.fl3 { left:50%; width:11px; height:32px; --dur:2.0s; --delay:0.9s; }
-.fl4 { left:70%; width:7px;  height:21px; --dur:1.7s; --delay:0.3s; }
-.fl5 { left:88%; width:8px;  height:27px; --dur:2.4s; --delay:1.2s; }
-
-@keyframes fRise {
-    0%   { opacity:0;   transform:translateY(0)     scaleX(1);   }
-    25%  { opacity:0.7; transform:translateY(-14px)  scaleX(1.1); }
-    70%  { opacity:0.3; transform:translateY(-34px)  scaleX(0.8); }
-    100% { opacity:0;   transform:translateY(-54px)  scaleX(0.6); }
-}
-
-/* =========================================
-   HEADER
-   ========================================= */
-.speedo-header {
+/* =============================================
+   VEHICLE INFO (top)
+   ============================================= */
+.vehicle-info-group {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    position: relative;
-    z-index: 2;
-    padding-bottom: 7px;
-    border-bottom: 1px solid rgba(255,60,0,0.18);
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255,60,0,0.2);
+    position: relative; z-index: 2;
 }
 
-.status-pill {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    background: rgba(255,30,0,0.08);
-    border: 1px solid rgba(255,50,0,0.22);
-    border-radius: 20px;
-    padding: 3px 9px 3px 6px;
-}
-
-.pill-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #333;
-    transition: background 0.3s, box-shadow 0.3s;
-    flex-shrink: 0;
-}
-
-.pill-dot.on  { background: #22ff55; box-shadow: 0 0 6px #00ff44; }
-.pill-dot.off { background: #ff2222; box-shadow: 0 0 6px #cc0000; }
-
-.pill-text {
-    font-size: 9px;
+.top-vehicle-name {
+    font-size: 11px;
     font-weight: 700;
-    letter-spacing: 1px;
-    color: rgba(255,140,70,0.7);
+    letter-spacing: 2px;
+    color: #ff6600;
+    text-shadow: 0 0 8px rgba(255,80,0,0.8);
     text-transform: uppercase;
 }
 
-.unit-badge {
-    font-family: 'Orbitron', monospace;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    color: var(--y);
-    text-shadow: 0 0 8px var(--o);
-    background: rgba(255,60,0,0.1);
-    border: 1px solid rgba(255,80,0,0.28);
+.top-plate-box {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255,40,0,0.1);
+    border: 1px solid rgba(255,60,0,0.3);
     border-radius: 4px;
     padding: 2px 7px;
 }
 
-/* =========================================
-   SPEEDO BODY — Arc + Speed
-   ========================================= */
-.speedo-body {
-    position: relative;
-    z-index: 2;
+.top-plate-box label {
+    font-size: 8px;
+    color: rgba(255,120,60,0.6);
+    letter-spacing: 1px;
+}
+
+.top-plate-box span {
+    font-size: 10px;
+    font-weight: 700;
+    color: #ffdd00;
+    text-shadow: 0 0 6px #ff6600;
+}
+
+/* =============================================
+   HEADER: Health + Icons
+   ============================================= */
+.hud-header {
     display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative; z-index: 2;
+}
+
+.status-item {
+    font-size: 9px;
+    color: rgba(255,140,70,0.7);
+    letter-spacing: 1px;
+}
+
+.status-item span {
+    color: #ff6600;
+    text-shadow: 0 0 6px rgba(255,80,0,0.7);
+    font-weight: 700;
+}
+
+.status-icons {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.hud-icon {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: rgba(255,80,0,0.3);
+    stroke-width: 1.5;
+    transition: stroke 0.2s, filter 0.2s;
+}
+
+.hud-icon.active {
+    stroke: #ffdd00;
+    filter: drop-shadow(0 0 4px #ff6600);
+}
+
+.hud-icon.warning {
+    stroke: #ff2200;
+    filter: drop-shadow(0 0 5px #ff0000);
+    animation: iconWarn 0.4s ease infinite alternate;
+}
+
+.hud-icon.glow-high {
+    stroke: #ffffff;
+    filter: drop-shadow(0 0 6px #ffffff);
+}
+
+@keyframes iconWarn {
+    from { filter: drop-shadow(0 0 3px #ff0000); }
+    to   { filter: drop-shadow(0 0 8px #ff4400); }
+}
+
+/* =============================================
+   BODY: Gauge + Data
+   ============================================= */
+.hud-body {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: relative; z-index: 2;
+}
+
+/* Gauge */
+.analog-section { flex-shrink: 0; }
+
+.gauge-outline {
+    width: 130px;
+    height: 90px;
+    position: relative;
+    display: flex;
+    align-items: center;
     justify-content: center;
 }
 
-.arc-wrap {
-    position: relative;
-    width: 180px;
-}
-
-.arc-svg {
-    width: 100%;
-    filter: drop-shadow(0 0 6px rgba(255,80,0,0.55));
-}
-
-.speed-center {
+.rpm-arc-svg {
     position: absolute;
-    bottom: 2px;
-    left: 50%;
-    transform: translateX(-50%);
-    text-align: center;
-    line-height: 1;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 0 5px rgba(255,80,0,0.5));
 }
 
-.speed-val {
-    font-family: 'Orbitron', monospace;
-    font-size: 52px;
+.speed-display {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1;
+    margin-top: 12px;
+}
+
+#speed {
+    font-size: 42px;
     font-weight: 900;
     color: #fff;
     letter-spacing: -2px;
     text-shadow:
         0 0 10px rgba(255,110,0,0.9),
-        0 0 28px rgba(255,60,0,0.6);
+        0 0 25px rgba(255,60,0,0.6);
     transition: color 0.2s, text-shadow 0.2s;
 }
 
-/* Speed colour states */
-.speed-val.s-slow { color:#ffffff; }
-.speed-val.s-med  { color:#ffd060; text-shadow:0 0 14px #ff8800, 0 0 28px #ff5500; }
-.speed-val.s-fast { color:#ff7700; text-shadow:0 0 14px #ff5500, 0 0 32px #ff2200; }
-.speed-val.s-max  { color:#ff3300; text-shadow:0 0 18px #ff2200, 0 0 42px #ff0000; animation:maxFlicker 0.22s ease infinite alternate; }
-
-@keyframes maxFlicker {
-    from { text-shadow:0 0 18px #ff2200, 0 0 42px #ff0000; }
-    to   { text-shadow:0 0 28px #ff4400, 0 0 60px #ff2200, 0 0 85px rgba(255,0,0,0.5); }
-}
-
-/* =========================================
-   MID ROW: RPM + GEAR
-   ========================================= */
-.mid-row {
-    display: flex;
-    align-items: stretch;
-    gap: 8px;
-    position: relative;
-    z-index: 2;
-}
-
-.rpm-readout, .gear-box {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    background: rgba(255,30,0,0.07);
-    border: 1px solid rgba(255,55,0,0.22);
-    border-radius: 6px;
-    padding: 5px 8px;
-}
-
-.rpm-readout { flex: 1; }
-.gear-box    { min-width: 54px; }
-
-.mid-label {
-    font-size: 8px;
+.speed-unit-label {
+    font-size: 10px;
     font-weight: 700;
-    letter-spacing: 1.5px;
-    color: rgba(255,130,60,0.55);
-    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: #ff6600;
+    text-shadow: 0 0 6px rgba(255,80,0,0.7);
+    margin-top: -2px;
 }
 
-.mid-val {
-    font-family: 'Orbitron', monospace;
-    font-size: 13px;
-    color: var(--o);
-    text-shadow: 0 0 7px rgba(255,100,0,0.6);
-}
-
-.gear-val {
-    font-family: 'Orbitron', monospace;
-    font-size: 26px;
-    font-weight: 900;
-    color: var(--y);
-    text-shadow: 0 0 10px var(--o), 0 0 20px var(--r);
-    line-height: 1;
-    transition: color 0.2s, text-shadow 0.2s;
-}
-
-/* =========================================
-   BARS: FUEL + ENGINE HEALTH
-   ========================================= */
-.bars-row {
+/* Data section */
+.data-section {
+    flex: 1;
     display: flex;
     flex-direction: column;
     gap: 6px;
-    position: relative;
-    z-index: 2;
 }
 
-.bar-item {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-}
-
-.bar-top {
+.data-box {
+    background: rgba(255,30,0,0.07);
+    border: 1px solid rgba(255,55,0,0.22);
+    border-radius: 5px;
+    padding: 4px 7px;
     display: flex;
     align-items: center;
-    gap: 5px;
+    justify-content: space-between;
+    gap: 6px;
 }
 
-.bar-icon  { font-size: 10px; }
-.bar-label { font-size: 9px; font-weight: 700; letter-spacing: 1.2px; color: rgba(255,130,60,0.6); flex: 1; text-transform: uppercase; }
-.bar-pct   { font-family: 'Orbitron', monospace; font-size: 9px; color: rgba(255,170,100,0.7); }
+.data-box label {
+    font-size: 8px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    color: rgba(255,130,60,0.55);
+    text-transform: uppercase;
+    flex-shrink: 0;
+}
 
-.bar-track {
+.data-box span, .data-box #gear {
+    font-size: 14px;
+    font-weight: 700;
+    color: #ff6600;
+    text-shadow: 0 0 7px rgba(255,100,0,0.6);
+}
+
+.data-box.highlight span {
+    color: #ffdd00;
+    text-shadow: 0 0 8px rgba(255,150,0,0.7);
+}
+
+/* Gear special */
+#gear {
+    font-size: 22px !important;
+    font-weight: 900 !important;
+    color: #ffdd00 !important;
+    text-shadow: 0 0 10px #ff6600, 0 0 22px #ff2200 !important;
+}
+
+/* RPM bar */
+.rpm-container {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+.rpm-bar-background {
     width: 100%;
     height: 7px;
     background: rgba(255,30,0,0.1);
@@ -310,14 +295,36 @@ body {
     overflow: hidden;
 }
 
-.bar-fill {
+.rpm-bar-fill {
     height: 100%;
+    width: 0%;
     border-radius: 4px;
-    transition: width 0.45s ease, background 0.45s ease;
-    width: 100%;
+    background: linear-gradient(90deg, #ff2200, #ff6600, #ffdd00);
+    box-shadow: 0 0 6px rgba(255,100,0,0.7);
+    transition: width 0.08s linear;
 }
 
-.fire-bar {
-    background: linear-gradient(90deg, var(--r), var(--o), var(--y));
-    box-shadow: 0 0 6px rgba(255,100,0,0.65);
+/* =============================================
+   FOOTER: Odometer
+   ============================================= */
+.hud-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 5px;
+    border-top: 1px solid rgba(255,50,0,0.15);
+    position: relative; z-index: 2;
+}
+
+.hud-footer div:first-child {
+    font-size: 8px;
+    letter-spacing: 2px;
+    color: rgba(255,120,60,0.5);
+}
+
+#odometer {
+    font-size: 10px;
+    font-weight: 700;
+    color: #ff6600;
+    text-shadow: 0 0 6px rgba(255,80,0,0.6);
 }
