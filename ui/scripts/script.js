@@ -145,8 +145,8 @@ function onShow(d) {
     updateBar(engFill,  engPct,  d.engineHealth || 0, 'engine');
 
     // Engine status pill
-    const on = (d.speed || 0) > 0 || (d.gear || 0) > 0;
-    engineDot.className  = 'pill-dot ' + (on ? 'on' : 'off');
+    const on = !!d.engineOn;
+    engineDot.className   = 'pill-dot ' + (on ? 'on' : 'off');
     engineLbl.textContent = 'ENGINE ' + (on ? 'ON' : 'OFF');
 }
 
