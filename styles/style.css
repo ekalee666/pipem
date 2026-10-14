@@ -1,0 +1,347 @@
+/* =============================================
+   SKULL FIRE SPEEDOMETER — style.css
+   ============================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+
+body {
+    background: transparent;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    font-family: 'Orbitron', 'Courier New', monospace;
+}
+
+/* =============================================
+   DASHBOARD WRAPPER
+   ============================================= */
+.speedo-dashboard {
+    position: fixed;
+    bottom: 15px;
+    right: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    cursor: grab;
+    touch-action: none;
+}
+
+.speedo-dashboard:active { cursor: grabbing; }
+
+.speedo-dashboard.sync-hidden .dials-panel { opacity: 0; pointer-events: none; }
+
+/* =============================================
+   CONTROLS
+   ============================================= */
+.speedo-controls {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.control-btn {
+    background: rgba(255,40,0,0.15);
+    border: 1px solid rgba(255,80,0,0.35);
+    border-radius: 5px;
+    color: rgba(255,150,80,0.8);
+    font-size: 12px;
+    width: 24px;
+    height: 20px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+    padding: 0;
+}
+
+.control-btn:hover {
+    background: rgba(255,80,0,0.35);
+    color: #ffdd00;
+}
+
+.no-drag { pointer-events: all; }
+
+/* =============================================
+   MAIN PANEL
+   ============================================= */
+.speedo-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.dials-panel {
+    background: linear-gradient(160deg,
+        rgba(6,1,0,0.96)  0%,
+        rgba(15,4,0,0.97) 30%,
+        rgba(28,7,0,0.98) 65%,
+        rgba(45,12,0,1.0) 100%
+    );
+    border: 1px solid rgba(255,60,0,0.45);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow:
+        0 0 0 1px rgba(255,30,0,0.15),
+        0 0 18px rgba(255,50,0,0.5),
+        0 0 50px rgba(255,20,0,0.2),
+        inset 0 0 25px rgba(255,30,0,0.05);
+    animation: panelBreath 3s ease-in-out infinite;
+}
+
+@keyframes panelBreath {
+    0%,100% { box-shadow: 0 0 0 1px rgba(255,30,0,0.15), 0 0 18px rgba(255,50,0,0.5), 0 0 50px rgba(255,20,0,0.2), inset 0 0 25px rgba(255,30,0,0.05); }
+    50%     { box-shadow: 0 0 0 1px rgba(255,50,0,0.25), 0 0 28px rgba(255,70,0,0.7), 0 0 70px rgba(255,30,0,0.3), inset 0 0 35px rgba(255,50,0,0.08); }
+}
+
+/* =============================================
+   DIALS CONTAINER
+   ============================================= */
+.speedo-dials-container {
+    position: relative;
+    width: 310px;
+    height: 180px;
+    overflow: hidden;
+}
+
+/* =============================================
+   SPEED BG LAYERS (fire stage images)
+   ============================================= */
+.speed-bg-layer {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+}
+
+.speed-bg-layer.active { opacity: 1; }
+
+.speed-bg-speed { mix-blend-mode: screen; }
+.speed-bg-rpm   { mix-blend-mode: overlay; opacity: 0 !important; }
+
+/* =============================================
+   CANVAS
+   ============================================= */
+#speedo-canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 310px;
+    height: 180px;
+    pointer-events: none;
+}
+
+/* =============================================
+   SPEED OVERLAY (number + unit + odo)
+   ============================================= */
+.speed-overlay-container {
+    position: absolute;
+    /* centred in the left dial (cx=110) */
+    left: 62px;
+    top: 50px;
+    width: 96px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none;
+    line-height: 1;
+}
+
+#speed-display {
+    font-size: 46px;
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: -2px;
+    text-shadow:
+        0 0 8px rgba(255,100,0,0.9),
+        0 0 22px rgba(255,50,0,0.7),
+        0 0 45px rgba(255,20,0,0.4);
+    transition: color 0.18s, text-shadow 0.18s;
+}
+
+#speed-unit {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: #ff6600;
+    text-shadow: 0 0 6px rgba(255,80,0,0.8);
+    margin-top: 1px;
+    text-transform: uppercase;
+}
+
+.odometer-inline {
+    font-size: 8px;
+    letter-spacing: 1px;
+    color: rgba(255,120,60,0.6);
+    margin-top: 3px;
+    font-weight: 400;
+}
+
+/* Speed colour states */
+#speed-display.s-slow { color: #ffffff; }
+#speed-display.s-med  { color: #ffd060; text-shadow: 0 0 12px #ff8800, 0 0 25px #ff5500; }
+#speed-display.s-fast { color: #ff8800; text-shadow: 0 0 12px #ff5500, 0 0 28px #ff2200; }
+#speed-display.s-max  {
+    color: #ff3300;
+    text-shadow: 0 0 16px #ff2200, 0 0 38px #ff0000;
+    animation: maxPulse 0.2s ease infinite alternate;
+}
+
+@keyframes maxPulse {
+    from { text-shadow: 0 0 16px #ff2200, 0 0 38px #ff0000; }
+    to   { text-shadow: 0 0 26px #ff4400, 0 0 55px #ff2200, 0 0 80px rgba(255,0,0,0.5); }
+}
+
+/* =============================================
+   INDICATORS ROW
+   ============================================= */
+.speedo-indicators {
+    position: absolute;
+    bottom: 7px;
+    left: 0; right: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    pointer-events: none;
+}
+
+.indicator-unit {
+    width: 16px;
+    height: 16px;
+    opacity: 0.18;
+    transition: opacity 0.2s, filter 0.2s;
+}
+
+.indicator-unit.on { opacity: 1; }
+
+.indicator-arrow svg { fill: #ff8800; }
+.indicator-arrow.on { filter: drop-shadow(0 0 4px #ff8800); }
+
+.indicator-headlight svg { fill: rgba(200,220,255,0.5); }
+.indicator-headlight.on  { filter: drop-shadow(0 0 5px #aaccff); opacity: 1; }
+.indicator-headlight.glow-high { filter: drop-shadow(0 0 7px #ffffff); opacity: 1; }
+.indicator-headlight.glow-high svg { fill: #ffffff; }
+
+/* Seatbelt icon */
+.seatbelt-icon {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255,200,0,0.3);
+    border-radius: 50%;
+    position: relative;
+}
+.indicator-seatbelt.on .seatbelt-icon {
+    border-color: #ffdd00;
+    box-shadow: 0 0 6px #ffaa00;
+}
+
+/* Engine icon */
+.engine-icon {
+    width: 14px;
+    height: 8px;
+    border: 1.5px solid rgba(255,60,0,0.3);
+    border-radius: 2px;
+    position: relative;
+}
+.engine-icon::before {
+    content: '';
+    position: absolute;
+    top: -3px; left: 2px;
+    width: 3px; height: 3px;
+    border: 1.5px solid inherit;
+    border-top-left-radius: 1px;
+    border-top-right-radius: 1px;
+    background: transparent;
+    border-color: rgba(255,60,0,0.3);
+}
+.indicator-engine.on .engine-icon {
+    border-color: #ff4400;
+    box-shadow: 0 0 5px #ff2200;
+}
+.indicator-engine.on .engine-icon::before { border-color: #ff4400; }
+
+/* =============================================
+   BOTTOM STATUS CAPSULE — Fuel & Health
+   ============================================= */
+.bottom-status-capsule {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 6px 10px 7px;
+    background: rgba(0,0,0,0.3);
+    border-top: 1px solid rgba(255,50,0,0.2);
+}
+
+.linear-gauge-container {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.linear-icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    filter: drop-shadow(0 0 3px rgba(255,80,0,0.6));
+}
+
+.linear-progress-bar {
+    flex: 1;
+    height: 8px;
+    background: rgba(255,30,0,0.1);
+    border: 1px solid rgba(255,50,0,0.25);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.4s ease, background 0.4s ease;
+    position: relative;
+}
+
+.fuel-bar-fill {
+    background: linear-gradient(90deg, #ff2200, #ff6600, #ffdd00);
+    box-shadow: 0 0 6px rgba(255,100,0,0.7);
+}
+
+.health-bar-fill {
+    background: linear-gradient(90deg, #cc0000, #ff3300, #ff7700);
+    box-shadow: 0 0 6px rgba(255,50,0,0.7);
+}
+
+/* Low value colours */
+.progress-fill.low {
+    background: linear-gradient(90deg, #660000, #990000) !important;
+    box-shadow: 0 0 8px rgba(180,0,0,0.9) !important;
+    animation: lowWarn 0.5s ease infinite alternate;
+}
+
+@keyframes lowWarn {
+    from { box-shadow: 0 0 5px rgba(180,0,0,0.7); }
+    to   { box-shadow: 0 0 12px rgba(220,0,0,1.0); }
+}
+
+.linear-value {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 7px;
+    font-weight: 700;
+    color: rgba(255,200,150,0.85);
+    letter-spacing: 0.5px;
+    pointer-events: none;
+}
+
+/* hide scrollbar helper */
+.hide { display: none !important; }
