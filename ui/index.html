@@ -8,9 +8,9 @@
 </head>
 <body>
 
-<div id="speedo" class="speedo hidden">
+<div id="speedo">
 
-    <!-- Flame particle layer -->
+    <!-- Flame particles -->
     <div class="flame-layer" aria-hidden="true">
         <span class="flare fl1"></span>
         <span class="flare fl2"></span>
@@ -19,25 +19,22 @@
         <span class="flare fl5"></span>
     </div>
 
-    <!-- Header: engine status -->
+    <!-- Header -->
     <div class="speedo-header">
-        <div class="status-pill" id="engine-pill">
+        <div class="status-pill">
             <span class="pill-dot" id="engine-dot"></span>
-            <span class="pill-text" id="engine-lbl">ENGINE OFF</span>
+            <!-- ID: engine — server writes "On"/"Off" here -->
+            <span class="pill-text">ENGINE <span id="engine">Off</span></span>
         </div>
-        <div class="unit-badge" id="unit-badge">KM/H</div>
+        <div class="unit-badge" id="unit-badge">MPH</div>
     </div>
 
-    <!-- Main body -->
+    <!-- Arc + Speed -->
     <div class="speedo-body">
-
-        <!-- RPM arc (SVG) -->
         <div class="arc-wrap">
             <svg class="arc-svg" viewBox="0 0 120 70" xmlns="http://www.w3.org/2000/svg">
-                <!-- track -->
                 <path d="M10,65 A55,55 0 0,1 110,65"
                       fill="none" stroke="rgba(255,40,0,0.12)" stroke-width="7" stroke-linecap="round"/>
-                <!-- active -->
                 <path id="rpm-path" d="M10,65 A55,55 0 0,1 110,65"
                       fill="none" stroke="url(#fg)" stroke-width="7" stroke-linecap="round"
                       stroke-dasharray="173" stroke-dashoffset="173"/>
@@ -50,33 +47,35 @@
                 </defs>
             </svg>
 
-            <!-- Speed number centred inside arc -->
             <div class="speed-center">
-                <span id="speed-val" class="speed-val">0</span>
+                <!-- ID: speed — server writes "120 MPH" / "80 KMH" here -->
+                <span id="speed" class="speed-val">0 MPH</span>
             </div>
         </div>
-
     </div>
 
-    <!-- RPM + Gear row -->
+    <!-- RPM + Gear -->
     <div class="mid-row">
-        <div class="rpm-readout" id="rpm-wrap">
+        <div class="rpm-readout">
             <span class="mid-label">RPM</span>
-            <span id="rpm-val" class="mid-val">0</span>
+            <!-- ID: rpm — server writes "0.5000 RPM" here -->
+            <span id="rpm" class="mid-val">0.0000 RPM</span>
         </div>
-        <div class="gear-box" id="gear-wrap">
+        <div class="gear-box">
             <span class="mid-label">GEAR</span>
-            <span id="gear-val" class="gear-val">1</span>
+            <!-- ID: gear — server writes gear number here -->
+            <span id="gear" class="gear-val">N</span>
         </div>
     </div>
 
-    <!-- Fuel & Engine health bars -->
+    <!-- Fuel & Health bars -->
     <div class="bars-row">
         <div class="bar-item">
             <div class="bar-top">
                 <span class="bar-icon">⛽</span>
                 <span class="bar-label">FUEL</span>
-                <span id="fuel-pct" class="bar-pct">100%</span>
+                <!-- ID: fuel — server writes "71.0%" here -->
+                <span id="fuel" class="bar-pct">100%</span>
             </div>
             <div class="bar-track">
                 <div id="fuel-fill" class="bar-fill fire-bar"></div>
@@ -85,13 +84,38 @@
         <div class="bar-item">
             <div class="bar-top">
                 <span class="bar-icon">🔧</span>
-                <span class="bar-label">ENGINE</span>
-                <span id="eng-pct" class="bar-pct">100%</span>
+                <span class="bar-label">HEALTH</span>
+                <!-- ID: health — server writes "100.0%" here -->
+                <span id="health" class="bar-pct">100%</span>
             </div>
             <div class="bar-track">
-                <div id="eng-fill" class="bar-fill fire-bar"></div>
+                <div id="health-fill" class="bar-fill fire-bar"></div>
             </div>
         </div>
+    </div>
+
+    <!-- Extra info row: headlights, indicators, seatbelts, odometer -->
+    <div class="extra-row">
+        <div class="extra-item">
+            <span class="extra-label">💡</span>
+            <span id="headlights" class="extra-val">Off</span>
+        </div>
+        <div class="extra-item">
+            <span class="extra-label">🔁</span>
+            <span id="indicators" class="extra-val">Off / Off</span>
+        </div>
+        <div class="extra-item">
+            <span class="extra-label">🔒</span>
+            <span id="seatbelts" class="extra-val">On</span>
+        </div>
+    </div>
+
+    <!-- ODO -->
+    <div class="odo-row">
+        <span class="odo-icon">📍</span>
+        <span class="odo-label">ODO</span>
+        <!-- ID: odometer — server writes "372.1 Miles" here -->
+        <span id="odometer" class="odo-val">0.0 Miles</span>
     </div>
 
 </div>
